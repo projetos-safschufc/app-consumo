@@ -1,0 +1,53 @@
+.header {
+  /*background: #0f172a;*/
+  background: #8BC547;
+  color: #145D50;
+  padding: 24px 32px;
+  position: relative;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+}
+
+.header p {
+  margin: 0;
+  color: #1809a0;
+}
+
+.api-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  display: grid;
+  gap: 2px;
+}
+
+.api-badge span {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.api-badge strong {
+  font-weight: 600;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+@media (max-width: 720px) {
+  .header {
+    padding: 20px;
+  }
+}

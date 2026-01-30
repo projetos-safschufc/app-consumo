@@ -1,0 +1,45 @@
+.table-empty,
+.table-error {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.table-error {
+  color: #dc2626;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Botão "Ver todos" para tabelas com muitos itens */
+.table-card-view-all {
+  margin-bottom: 8px;
+}
+
+.table-card-view-all-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.table-card-view-all-btn:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Área rolável quando "Ver todos" está ativo */
+.table-card-scroll-wrap {
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: auto;
+}

@@ -1,0 +1,95 @@
+.info-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 200px;
+}
+
+.info-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.status-pill {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  height: fit-content;
+}
+
+.info-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 100px;
+}
+
+.info-card-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #16a34a;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.info-card-unit {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.info-card-loading,
+.info-card-error,
+.info-card-empty {
+  font-size: 14px;
+  color: #6b7280;
+  padding: 20px;
+}
+
+.info-card-error {
+  color: #dc2626;
+}
+
+.info-card-footer {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .info-card {
+    padding: 16px;
+  }
+
+  .info-card-value {
+    font-size: 28px;
+  }
+}

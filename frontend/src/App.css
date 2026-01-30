@@ -1,0 +1,198 @@
+/* Ajuste para quando ApiStatus estiver visível */
+body {
+  padding-top: 0;
+}
+
+.container {
+  padding: 24px 32px 48px 32px;
+  display: grid;
+  gap: 16px;
+}
+
+.section-title {
+  margin: 8px 0 4px 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.section-subtitle {
+  margin: 0 0 12px 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* Grid com um único item em largura total (reorganização após remoção de gráficos) */
+.grid-single-full {
+  grid-template-columns: 1fr;
+  max-width: 100%;
+}
+.grid-single-full .chart-container {
+  min-height: 280px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+}
+
+.card p {
+  margin: 0 0 12px 0;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.status-pill {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  height: fit-content;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px;
+  text-align: left;
+}
+
+.table th {
+  font-weight: 600;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.status {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.info .card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.historico-projecao-grid {
+  grid-template-columns: 2fr 1fr !important;
+  gap: 16px;
+}
+
+/* Label com nome do material filtrado */
+/* Label do material filtrado: código (mat_codigo) e nome (nm_material) */
+.material-filter-label-name {
+  margin: 6px 0 10px 0;
+  font-size: 13px;
+  color: #374151;
+}
+.material-filter-label-name strong {
+  color: #111827;
+  font-weight: 600;
+}
+.material-filter-label-sep {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* Layout mais compacto para Histórico, Projeção e Média */
+.historico-projecao-compact {
+  gap: 12px !important;
+}
+.historico-projecao-compact .card {
+  padding: 12px;
+}
+.historico-projecao-compact .card h3 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.historico-projecao-compact .card > .card-header + p,
+.historico-projecao-compact .card .card-header p {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.historico-projecao-compact .chart-container {
+  height: 220px;
+  margin: 10px 0;
+}
+.historico-projecao-compact .status {
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: 11px;
+}
+.historico-projecao-compact .info-card {
+  min-height: 140px;
+  padding: 12px;
+}
+.historico-projecao-compact .info-card-header {
+  margin-bottom: 10px;
+}
+.historico-projecao-compact .info-card-value {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+.historico-projecao-compact .info-card-unit {
+  font-size: 12px;
+}
+.historico-projecao-compact .info-card-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  font-size: 11px;
+}
+.historico-projecao-compact > div:last-child {
+  gap: 10px;
+}
+
+@media (max-width: 1024px) {
+  .historico-projecao-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    padding: 16px 20px 32px 20px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .historico-projecao-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -1,0 +1,265 @@
+###### dados de acesso ao banco #############
+Host: pgpool1.ebserh
+Port: 5432
+dbase: powerbi
+User: seu_usuario
+Pass: sua_senha
+
+
+########################################################
+##************* SCRIPTS SQL DE CONSULTAS *************##
+########################################################
+##****************************************************
+## Consumo mensal por material (RM) ##
+## GRÁFICO DE BARRAS (mês x consumo)
+SELECT
+    mesano,
+    id_material,
+    material,
+    SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_mensal
+FROM gad_dlih_safs.v_df_movimento
+WHERE movimento_cd = 'RM'
+  AND negativo = '1'
+GROUP BY mesano, id_material, material
+ORDER BY mesano;
+
+##****************************************************
+## Média mensal de consumo por material (histórico) ##
+## Gráfico: barras horizontais (ranking)
+SELECT
+    id_material,
+    material,
+    AVG(consumo_mensal) AS media_mensal
+FROM (
+    SELECT
+        mesano,
+        id_material,
+        material,
+        SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_mensal
+    FROM gad_dlih_safs.v_df_movimento
+    WHERE movimento_cd = 'RM'
+      AND negativo = '1'
+    GROUP BY mesano, id_material, material
+);
+GROUP BY id_material, material
+ORDER BY media_mensal DESC;
+
+##****************************************************
+## Consumo mensal por grupo de material
+## Gráfico: barras empilhadas 
+SELECT
+    mesano,
+    grupo,
+    SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_mensal
+FROM gad_dlih_safs.v_df_movimento
+WHERE movimento_cd = 'RM'
+  AND negativo = '1'
+GROUP BY mesano, grupo
+ORDER BY mesano;
+
+
+##****************************************************
+## Consumo por centro requisitante
+## Gráfico: barras ou pizza
+SELECT
+    centro_requisitante,
+    SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_total
+FROM gad_dlih_safs.v_df_movimento
+WHERE movimento_cd = 'RM'
+  AND negativo = '1'
+GROUP BY centro_requisitante
+ORDER BY consumo_total DESC;
+
+
+##****************************************************
+## Consumo diário no mês atual (base para projeção)
+## Gráfico: linha (dia x consumo)
+SELECT
+    data,
+    SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_dia
+FROM gad_dlih_safs.v_df_movimento
+WHERE movimento_cd = 'RM'
+  AND negativo = '1'
+  AND date_trunc('month', data) = date_trunc('month', CURRENT_DATE)
+GROUP BY data
+ORDER BY data;
+
+
+##****************************************************
+## Projeção de consumo para o mês atual (regra simples)
+## Lógica:(consumo até hoje / dias decorridos) × dias do mês
+WITH consumo_parcial AS (
+    SELECT
+        SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_ate_hoje,
+        COUNT(DISTINCT data) AS dias_com_consumo
+    FROM gad_dlih_safs.v_df_movimento
+    WHERE movimento_cd = 'RM'
+      AND negativo = '1'
+      AND date_trunc('month', data) = date_trunc('month', CURRENT_DATE)
+)
+SELECT
+    consumo_ate_hoje,
+    dias_com_consumo,
+    consumo_ate_hoje / dias_com_consumo
+        * EXTRACT(DAY FROM (date_trunc('month', CURRENT_DATE)
+        + INTERVAL '1 month - 1 day')) AS consumo_projetado_mes
+FROM consumo_parcial;
+
+
+##****************************************************
+## Projeção mensal por material
+## Gráfico: barras (real x projetado)
+WITH base AS (
+    SELECT
+        id_material,
+        material,
+        SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_ate_hoje,
+        COUNT(DISTINCT data) AS dias
+    FROM gad_dlih_safs.v_df_movimento
+    WHERE movimento_cd = 'RM'
+      AND negativo = '1'
+      AND date_trunc('month', data) = date_trunc('month', CURRENT_DATE)
+    GROUP BY id_material, material
+)
+SELECT
+    id_material,
+    material,
+    consumo_ate_hoje,
+    consumo_ate_hoje / dias
+      * EXTRACT(DAY FROM (date_trunc('month', CURRENT_DATE)
+      + INTERVAL '1 month - 1 day')) AS consumo_projetado
+FROM base;
+
+
+##****************************************************
+## Tendência de consumo (últimos 6 meses)
+## Gráfico: linha + média móvel
+SELECT
+    mesano,
+    SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_mensal
+FROM gad_dlih_safs.v_df_movimento
+WHERE movimento_cd = 'RM'
+  AND negativo = '1'
+  AND mesano >= (date_trunc('month', CURRENT_DATE) - INTERVAL '6 months')
+GROUP BY mesano
+ORDER BY mesano;
+
+
+##****************************************************
+## Materiais com crescimento abrupto de consumo
+## Objetivo: identificar materiais com aumento percentual relevante de um mês para o outro com Crescimento > 30% em relação ao mês anterior
+## Uso: alerta, gráfico de variação, ranking
+WITH consumo_mensal AS (
+    SELECT
+        mesano,
+        id_material,
+        material,
+        SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo
+    FROM gad_dlih_safs.v_df_movimento
+    WHERE movimento_cd = 'RM'
+      AND negativo = '1'
+    GROUP BY mesano, id_material, material
+)
+SELECT
+    atual.mesano        AS mes_atual,
+    atual.id_material,
+    atual.material,
+    anterior.consumo    AS consumo_mes_anterior,
+    atual.consumo       AS consumo_mes_atual,
+    ROUND(
+        (atual.consumo - anterior.consumo) / NULLIF(anterior.consumo, 0) * 100,
+        2
+    ) AS crescimento_percentual
+FROM consumo_mensal atual
+JOIN consumo_mensal anterior
+  ON atual.id_material = anterior.id_material
+ AND atual.mesano = (anterior.mesano + INTERVAL '1 month')::date
+WHERE (atual.consumo - anterior.consumo) / NULLIF(anterior.consumo, 0) > 0.30
+ORDER BY crescimento_percentual DESC;
+
+##****************************************************
+## Materiais com consumo zero há X meses
+## Objetivo: detectar obsolescência, desperdício ou erro de cadastro, Exemplo: sem consumo nos últimos 6 meses
+## Uso: lista, alerta, auditoria
+WITH ultimos_meses AS (
+    SELECT
+        id_material,
+        material,
+        MAX(mesano) AS ultimo_mes_consumo
+    FROM gad_dlih_safs.v_df_movimento
+    WHERE movimento_cd = 'RM'
+      AND negativo = '1'
+    GROUP BY id_material, material
+)
+SELECT
+    id_material,
+    material,
+    ultimo_mes_consumo
+FROM ultimos_meses
+WHERE ultimo_mes_consumo
+      < (date_trunc('month', CURRENT_DATE) - INTERVAL '6 months')
+ORDER BY ultimo_mes_consumo;
+
+
+##****************************************************
+## Consumo por hospital / almoxarifado
+## Objetivo: comparar unidades e identificar gargalos
+## Uso: barras, mapa, ranking
+SELECT
+    mesano,
+    hospital,
+    alm_nome,
+    SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_mensal
+FROM gad_dlih_safs.v_df_movimento
+WHERE movimento_cd = 'RM'
+  AND negativo = '1'
+GROUP BY mesano, hospital, alm_nome
+ORDER BY mesano, consumo_mensal DESC;
+
+
+##****************************************************
+## Ranking de materiais críticos
+## Objetivo: focar nos materiais mais relevantes
+## Uso: ranking, Pareto (80/20)
+## Critério 1 — Maior consumo médio mensal
+WITH consumo_mensal AS (
+    SELECT
+        mesano,
+        id_material,
+        material,
+        SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo
+    FROM gad_dlih_safs.v_df_movimento
+    WHERE movimento_cd = 'RM'
+      AND negativo = '1'
+    GROUP BY mesano, id_material, material
+)
+SELECT
+    id_material,
+    material,
+    AVG(consumo) AS media_mensal_consumo
+FROM consumo_mensal
+GROUP BY id_material, material
+ORDER BY media_mensal_consumo DESC
+FETCH FIRST 20 ROWS ONLY;
+
+
+##****************************************************
+## Consumo x valor (impacto financeiro)
+## Objetivo: identificar materiais baratos x caros e consumo elevado
+## Uso: gráfico de dispersão (scatter plot)
+SELECT
+    id_material,
+    material,
+    SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END) AS consumo_total,
+    SUM(valor_orig)     AS valor_total,
+    ROUND(
+        (SUM(valor_orig) / NULLIF(SUM(CASE WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer) ELSE 0 END), 0))::numeric,
+        2
+    ) AS custo_unitario_medio
+FROM gad_dlih_safs.v_df_movimento
+WHERE movimento_cd = 'RM'
+  AND negativo = '1'
+GROUP BY id_material, material
+ORDER BY valor_total DESC;
+
+

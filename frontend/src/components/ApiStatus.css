@@ -1,0 +1,42 @@
+.api-status {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #fee2e2;
+  border-bottom: 2px solid #dc2626;
+  padding: 12px 24px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.api-status-checking {
+  background: #fef3c7;
+  border-bottom-color: #f59e0b;
+}
+
+.api-status-error {
+  background: #fee2e2;
+  border-bottom-color: #dc2626;
+}
+
+.api-status-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.api-status-checking .api-status-content {
+  color: #92400e;
+}
+
+.api-status-details {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.api-status-details p {
+  margin: 2px 0;
+}
