@@ -61,9 +61,9 @@ export async function getConsumoPorHospitalAlmox(req, res, next) {
     if (mat_codigo && mat_codigo !== 'all' && mat_codigo !== '') {
       const sanitized = sanitizeIntegerValue(mat_codigo);
       if (sanitized) {
-        params.FILTER_MATERIAL = `AND mat_codigo = ${sanitized}`;
+        params.FILTER_MATERIAL = `AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) = '${sanitized}'`;
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🔍 [consumo-por-hospital-almox] Filtro mat_codigo: "${mat_codigo}" → ${sanitized}`);
+          console.log(`🔍 [consumo-por-hospital-almox] Filtro código único (mat_cod_antigo): "${mat_codigo}" → ${sanitized}`);
         }
       } else {
         params.FILTER_MATERIAL = '';
@@ -203,30 +203,22 @@ function sanitizeIntegerValue(value) {
 }
 
 /**
- * Histórico de consumo mensal (com filtro opcional por df_movimento.mat_codigo)
+ * Histórico de consumo mensal (filtro opcional por código único: trecho à esquerda do '-' em mat_cod_antigo)
  */
 export async function getHistoricoConsumoMensal(req, res, next) {
   try {
     const { mat_codigo } = req.query;
     
-    let filterClause = '';
     const params = {};
     
     if (mat_codigo && mat_codigo !== 'all' && mat_codigo !== '') {
-      // Converte para inteiro já que mat_codigo é INTEGER (int4) no banco
       const sanitized = sanitizeIntegerValue(mat_codigo);
       if (sanitized) {
-        // Filtra por df_movimento.mat_codigo (tipo INTEGER int4)
-        // Comparação numérica direta: INTEGER = INTEGER (sem aspas)
-        filterClause = `AND mat_codigo = ${sanitized}`;
-        params.FILTER_MATERIAL = filterClause;
-        
-        // Log para debug (apenas em desenvolvimento)
+        params.FILTER_MATERIAL = `AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) = '${sanitized}'`;
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🔍 Filtro mat_codigo: "${mat_codigo}" → ${sanitized} (INTEGER)`);
+          console.log(`🔍 Filtro código único (mat_cod_antigo): "${mat_codigo}" → ${sanitized}`);
         }
       } else {
-        // Valor inválido, não aplica filtro
         if (process.env.NODE_ENV === 'development') {
           console.warn(`⚠️ Valor inválido para mat_codigo: "${mat_codigo}"`);
         }
@@ -249,30 +241,21 @@ export async function getHistoricoConsumoMensal(req, res, next) {
 }
 
 /**
- * Projeção do mês atual (com filtro opcional por mat_codigo)
+ * Projeção do mês atual (filtro opcional por código único: trecho à esquerda do '-' em mat_cod_antigo)
  */
 export async function getProjecaoMesAtualFiltrado(req, res, next) {
   try {
     const { mat_codigo } = req.query;
-    
-    let filterClause = '';
     const params = {};
     
     if (mat_codigo && mat_codigo !== 'all' && mat_codigo !== '') {
-      // Converte para inteiro já que mat_codigo é INTEGER (int4) no banco
       const sanitized = sanitizeIntegerValue(mat_codigo);
       if (sanitized) {
-        // Filtra por df_movimento.mat_codigo (tipo INTEGER int4)
-        // Comparação numérica direta: INTEGER = INTEGER (sem aspas)
-        filterClause = `AND mat_codigo = ${sanitized}`;
-        params.FILTER_MATERIAL = filterClause;
-        
-        // Log para debug (apenas em desenvolvimento)
+        params.FILTER_MATERIAL = `AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) = '${sanitized}'`;
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🔍 Filtro mat_codigo: "${mat_codigo}" → ${sanitized} (INTEGER)`);
+          console.log(`🔍 Filtro código único (mat_cod_antigo): "${mat_codigo}" → ${sanitized}`);
         }
       } else {
-        // Valor inválido, não aplica filtro
         if (process.env.NODE_ENV === 'development') {
           console.warn(`⚠️ Valor inválido para mat_codigo: "${mat_codigo}"`);
         }
@@ -319,30 +302,21 @@ export async function getListaMateriais(req, res, next) {
 }
 
 /**
- * Média dos últimos 6 consumos mensais (com filtro opcional por df_movimento.mat_codigo)
+ * Média dos últimos 6 consumos mensais (filtro opcional por código único: trecho à esquerda do '-' em mat_cod_antigo)
  */
 export async function getMediaUltimos6Consumos(req, res, next) {
   try {
     const { mat_codigo } = req.query;
-    
-    let filterClause = '';
     const params = {};
     
     if (mat_codigo && mat_codigo !== 'all' && mat_codigo !== '') {
-      // Converte para inteiro já que mat_codigo é INTEGER (int4) no banco
       const sanitized = sanitizeIntegerValue(mat_codigo);
       if (sanitized) {
-        // Filtra por df_movimento.mat_codigo (tipo INTEGER int4)
-        // Comparação numérica direta: INTEGER = INTEGER (sem aspas)
-        filterClause = `AND mat_codigo = ${sanitized}`;
-        params.FILTER_MATERIAL = filterClause;
-        
-        // Log para debug (apenas em desenvolvimento)
+        params.FILTER_MATERIAL = `AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) = '${sanitized}'`;
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🔍 Filtro mat_codigo: "${mat_codigo}" → ${sanitized} (INTEGER)`);
+          console.log(`🔍 Filtro código único (mat_cod_antigo): "${mat_codigo}" → ${sanitized}`);
         }
       } else {
-        // Valor inválido, não aplica filtro
         if (process.env.NODE_ENV === 'development') {
           console.warn(`⚠️ Valor inválido para mat_codigo: "${mat_codigo}"`);
         }

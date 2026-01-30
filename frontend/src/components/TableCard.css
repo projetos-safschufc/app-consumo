@@ -16,6 +16,35 @@
   gap: 8px;
 }
 
+.table-card-pdf-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f766e;
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.table-card-pdf-btn:hover:not(:disabled) {
+  background: #99f6e4;
+  color: #0d9488;
+}
+
+.table-card-pdf-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Período exibido (ex.: Mês anterior 12/2025 | Mês atual 01/2026) */
+.table-card-period {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
 /* Botão "Ver todos" para tabelas com muitos itens */
 .table-card-view-all {
   margin-bottom: 8px;

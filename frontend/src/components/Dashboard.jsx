@@ -180,9 +180,12 @@ function Dashboard() {
               buildConfig={(data) => {
                 // Projetado = média diária (consumo até hoje / dias decorridos) * dias do mês (backend).
                 // Variação % = (projetado - média dos últimos 6 meses) / média dos últimos 6 meses * 100.
-                const projetado = Number(data[0]?.consumo_projetado_mes) ?? 0;
-                const ateHoje = Number(data[0]?.consumo_ate_hoje) ?? 0;
+                const row = data[0];
+                const projetado = Number(row?.consumo_projetado_mes) ?? 0;
+                const ateHoje = Number(row?.consumo_ate_hoje) ?? 0;
                 const media = Number(mediaUltimos6) ?? 0;
+                const diasDecorridos = row?.dias_decorridos;
+                const diasNoMes = row?.dias_no_mes;
                 let labelProjetado = 'Projetado';
                 if (media > 0) {
                   const pct = ((projetado - media) / media) * 100;
@@ -211,6 +214,14 @@ function Dashboard() {
                             const value = context.parsed.y;
                             return `Consumo: ${new Intl.NumberFormat('pt-BR').format(value)}`;
                           },
+                          afterBody: function() {
+                            if (diasDecorridos == null || diasNoMes == null) return [];
+                            return [
+                              '',
+                              'Projeção = média diária × dias do mês.',
+                              `${diasDecorridos} dias decorridos de ${diasNoMes} no mês.`,
+                            ];
+                          },
                         },
                       },
                     },
@@ -229,6 +240,17 @@ function Dashboard() {
                     },
                   },
                 };
+              }}
+              renderFooter={(data) => {
+                const d = data[0];
+                const dias = d?.dias_decorridos;
+                const total = d?.dias_no_mes;
+                if (dias == null || total == null) return null;
+                return (
+                  <>
+                    <strong>{dias}</strong> dias decorridos de <strong>{total}</strong> no mês. Projeção = média diária × dias do mês.
+                  </>
+                );
               }}
             />
             
@@ -306,6 +328,7 @@ function Dashboard() {
             title="Materiais com crescimento abrupto"
             objective="Monitorar aumentos acima de 30%. Mês anterior = consolidado; mês atual = parcial (até hoje). % = variação entre atual e anterior."
             endpoint="/crescimento-abrupto"
+            periodFromData={{ mesAtualKey: 'mes_atual' }}
             columns={[
               { key: 'material', label: 'Material' },
               { key: 'consumo_mes_anterior', label: 'Mês anterior' },
@@ -314,6 +337,7 @@ function Dashboard() {
             ]}
             maxRows={15}
             enableViewAll
+            enablePdfExport
             refreshMs={0}
             initialDelay={getStaggeredDelay()}
           />
@@ -329,6 +353,7 @@ function Dashboard() {
             ]}
             maxRows={15}
             enableViewAll
+            enablePdfExport
             refreshMs={0}
             initialDelay={getStaggeredDelay()}
           />

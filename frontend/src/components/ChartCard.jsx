@@ -38,8 +38,9 @@ ChartJS.register(
  * @param {string} chartType - Tipo do gráfico ('line', 'bar', 'pie', 'scatter')
  * @param {number} refreshMs - Intervalo de atualização
  * @param {number} initialDelay - Delay inicial antes da primeira requisição (ms)
+ * @param {Function} [renderFooter] - Opcional. Recebe (data) e retorna conteúdo para o rodapé do card (ex.: metodologia da projeção).
  */
-function ChartCard({ title, objective, endpoint, buildConfig, chartType = 'line', refreshMs = 60000, initialDelay = 0 }) {
+function ChartCard({ title, objective, endpoint, buildConfig, chartType = 'line', refreshMs = 60000, initialDelay = 0, renderFooter }) {
   const { data, status, lastUpdated, error, refresh, isLoading } = useApiData(endpoint, refreshMs, initialDelay);
 
   const renderChart = () => {
@@ -114,6 +115,11 @@ function ChartCard({ title, objective, endpoint, buildConfig, chartType = 'line'
         {status}
         {lastUpdated ? ` • atualizado: ${lastUpdated.toLocaleTimeString('pt-BR')}` : ''}
       </div>
+      {renderFooter && data && data.length > 0 && (
+        <div className="chart-card-footer">
+          {renderFooter(data)}
+        </div>
+      )}
     </div>
   );
 }

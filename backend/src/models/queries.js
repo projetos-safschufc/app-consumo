@@ -35,23 +35,16 @@ export const SQL_QUERIES = {
   `,
 
   crescimento_abrupto: `
-    -- Materiais com crescimento ABRUPTO (> 30%) na comparação mês anterior (consolidado) x mês atual (parcial).
+    -- Materiais com crescimento ABRUPTO (> 30%). Código único = trecho à esquerda do '-' em mat_cod_antigo.
     -- Fonte: gad_dlih_safs.v_df_movimento, movimento_cd = 'RM'.
-    -- Agregação por mat_codigo (mesmo critério do Histórico de Consumo e extração Excel), garantindo coerência.
-    --
-    -- Semântica:
-    --   consumo_mes_anterior = valores CONSOLIDADOS do mês anterior (ex.: 12/2025 = mês fechado).
-    --   consumo_mes_atual    = valores PARCIAIS do mês atual (ex.: 01/2026 = apurado até a data atual).
-    --   crescimento_percentual = ((consumo_mes_atual - consumo_mes_anterior) / consumo_mes_anterior) * 100
-    --   Divisão em numeric para precisão; NULLIF(anterior, 0) evita divisão por zero.
     WITH mes_atual_ref AS (
       SELECT date_trunc('month', CURRENT_DATE)::date AS mes_atual
     ),
     consumo_mensal AS (
       SELECT
         date_trunc('month', mesano)::date AS mesano,
-        mat_codigo,
-        MAX(mat_codigo::text || '-' || COALESCE(TRIM(nm_material), TRIM(material), '')) AS material,
+        TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) AS codigo_unico,
+        MAX(COALESCE(TRIM(mat_cod_antigo), TRIM(material), '')) AS material,
         SUM(CASE
           WHEN quantidade::text ~ '^-?\\d+$' THEN
             ABS(quantidade::integer)
@@ -59,12 +52,12 @@ export const SQL_QUERIES = {
         END) AS consumo
       FROM gad_dlih_safs.v_df_movimento
       WHERE movimento_cd = 'RM'
-        AND mat_codigo IS NOT NULL
-      GROUP BY date_trunc('month', mesano), mat_codigo
+        AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) <> ''
+      GROUP BY date_trunc('month', mesano), TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1))
     )
     SELECT
       atual.mesano AS mes_atual,
-      atual.mat_codigo,
+      atual.codigo_unico AS mat_codigo,
       atual.material,
       anterior.consumo AS consumo_mes_anterior,
       atual.consumo AS consumo_mes_atual,
@@ -74,7 +67,7 @@ export const SQL_QUERIES = {
       ))::numeric AS crescimento_percentual
     FROM consumo_mensal atual
     JOIN consumo_mensal anterior
-      ON atual.mat_codigo = anterior.mat_codigo
+      ON atual.codigo_unico = anterior.codigo_unico
      AND atual.mesano = (anterior.mesano + INTERVAL '1 month')::date
     CROSS JOIN mes_atual_ref m
     WHERE atual.mesano = m.mes_atual
@@ -83,12 +76,11 @@ export const SQL_QUERIES = {
   `,
 
   consumo_zero_6_meses: `
-    -- Materiais cujo último consumo (a partir de 2023) foi há mais de 6 meses. Ordenado pelos que estão há mais tempo sem consumo.
-    -- Fonte: gad_dlih_safs.v_df_movimento, movimento_cd = 'RM', apenas mesano >= '2023-01-01' (ignora 2022).
+    -- Materiais cujo último consumo (a partir de 2023) foi há mais de 6 meses. Código único = trecho à esquerda do '-' em mat_cod_antigo.
     WITH base_2023 AS (
       SELECT
-        id_material,
-        material,
+        TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) AS codigo_unico,
+        MAX(COALESCE(TRIM(mat_cod_antigo), TRIM(material), '')) AS material,
         date_trunc('month', mesano)::date AS mesano,
         SUM(CASE
           WHEN quantidade::text ~ '^-?\\d+$' THEN ABS(quantidade::integer)
@@ -97,24 +89,25 @@ export const SQL_QUERIES = {
       FROM gad_dlih_safs.v_df_movimento
       WHERE movimento_cd = 'RM'
         AND mesano >= '2023-01-01'
-      GROUP BY id_material, material, date_trunc('month', mesano)
+        AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) <> ''
+      GROUP BY TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)), date_trunc('month', mesano)
     ),
     ultimos_meses AS (
       SELECT
-        id_material,
+        codigo_unico,
         material,
         MAX(mesano) AS ultimo_mes_consumo
       FROM base_2023
-      GROUP BY id_material, material
+      GROUP BY codigo_unico, material
     )
     SELECT
-      u.id_material,
+      u.codigo_unico AS id_material,
       u.material,
       u.ultimo_mes_consumo,
       b.consumo_no_mes AS consumo_ultimo_mes
     FROM ultimos_meses u
     JOIN base_2023 b
-      ON u.id_material = b.id_material
+      ON u.codigo_unico = b.codigo_unico
      AND u.material = b.material
      AND u.ultimo_mes_consumo = b.mesano
     WHERE u.ultimo_mes_consumo < (date_trunc('month', CURRENT_DATE) - INTERVAL '6 months')
@@ -123,7 +116,7 @@ export const SQL_QUERIES = {
 
   consumo_por_hospital_almox: `
     -- Média aritmética dos 6 últimos meses (anteriores ao mês corrente) por centro requisitante.
-    -- Apenas movimento_cd = 'RM'. Filtro opcional por mat_codigo. Ordem decrescente por consumo.
+    -- Apenas movimento_cd = 'RM'. Filtro opcional por código único (mat_cod_antigo antes do '-'). Ordem decrescente por consumo.
     WITH ultimos_6_meses AS (
       SELECT (date_trunc('month', CURRENT_DATE) - (n || ' months')::interval)::date AS mesano
       FROM generate_series(1, 6) AS n
@@ -203,7 +196,7 @@ export const SQL_QUERIES = {
   `,
 
   historico_consumo_mensal: `
-    -- Histórico de consumo mensal filtrado por df_movimento.mat_codigo
+    -- Histórico de consumo mensal. Filtro por código único (trecho à esquerda do '-' em mat_cod_antigo).
     SELECT
       mesano,
       SUM(CASE 
@@ -214,13 +207,13 @@ export const SQL_QUERIES = {
     FROM gad_dlih_safs.v_df_movimento
     WHERE movimento_cd = 'RM'
       AND mesano >= '2023-01-01'
-      {{FILTER_MATERIAL}} -- Filtro por mat_codigo (coluna df_movimento.mat_codigo)
+      {{FILTER_MATERIAL}}
     GROUP BY mesano
     ORDER BY mesano;
   `,
 
   projecao_mes_atual_filtrado: `
-    -- Projeção do mês atual filtrado por df_movimento.mat_codigo.
+    -- Projeção do mês atual. Filtro por código único (mat_cod_antigo antes do '-').
     -- Metodologia: média diária = consumo até hoje / dias decorridos no mês; projetado = média diária * dias do mês.
     WITH consumo_parcial AS (
       SELECT
@@ -232,7 +225,7 @@ export const SQL_QUERIES = {
       FROM gad_dlih_safs.v_df_movimento
       WHERE movimento_cd = 'RM'
         AND date_trunc('month', data) = date_trunc('month', CURRENT_DATE)
-        {{FILTER_MATERIAL}} -- Filtro por mat_codigo (coluna df_movimento.mat_codigo)
+        {{FILTER_MATERIAL}}
     ),
     dias_ref AS (
       SELECT
@@ -252,22 +245,21 @@ export const SQL_QUERIES = {
   `,
 
   lista_materiais: `
-    -- Lista de materiais: mat_codigo e nm_material (evita SELECT DISTINCT + ORDER BY fora da lista)
+    -- Lista de materiais. Código único = trecho à esquerda do '-' em mat_cod_antigo (identificador único por produto).
     SELECT
-      mat_codigo,
-      material,
-      nm_material
+      TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) AS mat_codigo,
+      MAX(COALESCE(nm_material, mat_cod_antigo, material)) AS material,
+      MAX(nm_material) AS nm_material
     FROM gad_dlih_safs.v_df_movimento
     WHERE movimento_cd = 'RM'
-      AND mat_codigo IS NOT NULL
-      AND (material IS NOT NULL OR nm_material IS NOT NULL)
-    GROUP BY mat_codigo, material, nm_material
-    ORDER BY COALESCE(nm_material, material)    
+      AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) <> ''
+      AND (mat_cod_antigo IS NOT NULL OR material IS NOT NULL OR nm_material IS NOT NULL)
+    GROUP BY TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1))
+    ORDER BY MAX(COALESCE(nm_material, mat_cod_antigo, material));
   `,
 
   media_ultimos_6_consumos: `
-    -- Média aritmética dos últimos 6 consumos mensais filtrado por df_movimento.mat_codigo
-    -- Calcula: (consumo_mes1 + consumo_mes2 + ... + consumo_mes6) / 6
+    -- Média aritmética dos últimos 6 consumos mensais. Filtro por código único (mat_cod_antigo antes do '-').
     SELECT
       COALESCE(AVG(consumo_mensal), 0) AS media_ultimos_6_consumos
     FROM (
@@ -281,7 +273,7 @@ export const SQL_QUERIES = {
       FROM gad_dlih_safs.v_df_movimento
       WHERE movimento_cd = 'RM'
         AND mesano >= '2023-01-01'
-        {{FILTER_MATERIAL}} -- Filtro por mat_codigo (coluna df_movimento.mat_codigo)
+        {{FILTER_MATERIAL}}
       GROUP BY mesano
       ORDER BY mesano DESC
       LIMIT 6
