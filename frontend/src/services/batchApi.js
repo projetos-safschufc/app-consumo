@@ -53,7 +53,7 @@ export async function batchRequest(requests) {
  */
 export async function preloadData(mat_codigo = null) {
   const params = mat_codigo ? `?mat_codigo=${encodeURIComponent(mat_codigo)}` : '';
-  
+
   try {
     const response = await fetch(`${API_BASE}/preload${params}`, {
       method: 'GET',

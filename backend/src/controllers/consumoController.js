@@ -208,9 +208,8 @@ function sanitizeIntegerValue(value) {
 export async function getHistoricoConsumoMensal(req, res, next) {
   try {
     const { mat_codigo } = req.query;
-    
     const params = {};
-    
+
     if (mat_codigo && mat_codigo !== 'all' && mat_codigo !== '') {
       const sanitized = sanitizeIntegerValue(mat_codigo);
       if (sanitized) {
@@ -247,7 +246,7 @@ export async function getProjecaoMesAtualFiltrado(req, res, next) {
   try {
     const { mat_codigo } = req.query;
     const params = {};
-    
+
     if (mat_codigo && mat_codigo !== 'all' && mat_codigo !== '') {
       const sanitized = sanitizeIntegerValue(mat_codigo);
       if (sanitized) {
@@ -308,7 +307,7 @@ export async function getMediaUltimos6Consumos(req, res, next) {
   try {
     const { mat_codigo } = req.query;
     const params = {};
-    
+
     if (mat_codigo && mat_codigo !== 'all' && mat_codigo !== '') {
       const sanitized = sanitizeIntegerValue(mat_codigo);
       if (sanitized) {

@@ -36,6 +36,13 @@ body {
   min-height: 280px;
 }
 
+/* Análises por Unidade: limita altura do gráfico e permite scroll vertical quando há muitas barras */
+.analises-unidade-grid .chart-container {
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .card {
   background: #ffffff;
   border-radius: 12px;
@@ -108,9 +115,14 @@ body {
   border: 1px solid #e2e8f0;
 }
 
+/* Três elementos lado a lado: Histórico, Projeção e Média em colunas iguais */
 .historico-projecao-grid {
-  grid-template-columns: 2fr 1fr !important;
+/*  grid-template-columns: repeat(3, 1fr) !important;*/
+  grid-template-columns: 2.7fr 0.8fr 0.5fr!important;
   gap: 16px;
+}
+.historico-projecao-grid > * {
+  min-width: 0;
 }
 
 /* Label com nome do material filtrado */
@@ -172,9 +184,6 @@ body {
   margin-top: 10px;
   padding-top: 8px;
   font-size: 11px;
-}
-.historico-projecao-compact > div:last-child {
-  gap: 10px;
 }
 
 @media (max-width: 1024px) {

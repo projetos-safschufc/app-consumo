@@ -25,12 +25,13 @@ export async function runQuery(queryName, options = {}) {
   
   let sql = SQL_QUERIES[queryName];
   
-  // Substitui parâmetros na query se fornecidos
+  // Substitui parâmetros na query se fornecidos (substituição literal; evita RegExp por {{ }} conter { e } especiais)
   if (Object.keys(params).length > 0) {
     Object.entries(params).forEach(([key, value]) => {
       const placeholder = `{{${key}}}`;
+      const safeValue = value != null ? String(value) : '';
       if (sql.includes(placeholder)) {
-        sql = sql.replace(new RegExp(placeholder, 'g'), value);
+        sql = sql.split(placeholder).join(safeValue);
       }
     });
   }

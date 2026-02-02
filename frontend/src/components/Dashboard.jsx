@@ -168,101 +168,99 @@ function Dashboard() {
             }}
           />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <ChartCard
-              key={`projecao-${materialFilter || 'all'}`}
-              title="Projeção de Consumo do Mês Atual"
-              objective="Antecipar o consumo projetado até o fim do mês."
-              endpoint={`/projecao-mes-atual-filtrado${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
-              chartType="bar"
-              refreshMs={0}
-              initialDelay={0}
-              buildConfig={(data) => {
-                // Projetado = média diária (consumo até hoje / dias decorridos) * dias do mês (backend).
-                // Variação % = (projetado - média dos últimos 6 meses) / média dos últimos 6 meses * 100.
-                const row = data[0];
-                const projetado = Number(row?.consumo_projetado_mes) ?? 0;
-                const ateHoje = Number(row?.consumo_ate_hoje) ?? 0;
-                const media = Number(mediaUltimos6) ?? 0;
-                const diasDecorridos = row?.dias_decorridos;
-                const diasNoMes = row?.dias_no_mes;
-                let labelProjetado = 'Projetado';
-                if (media > 0) {
-                  const pct = ((projetado - media) / media) * 100;
-                  const formatted = Math.abs(pct).toFixed(1).replace('.', ',');
-                  labelProjetado = pct >= 0 ? `Projetado (▲ ${formatted}%)` : `Projetado (▼ ${formatted}%)`;
-                }
-                return {
-                  data: {
-                    labels: ['Até hoje', labelProjetado],
-                    datasets: [
-                      {
-                        label: 'Consumo',
-                        data: [ateHoje, projetado],
-                        backgroundColor: [CHART_COLORS[2], CHART_COLORS[3]],
-                      },
-                    ],
-                  },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { display: false },
-                      tooltip: {
-                        callbacks: {
-                          label: function(context) {
-                            const value = context.parsed.y;
-                            return `Consumo: ${new Intl.NumberFormat('pt-BR').format(value)}`;
-                          },
-                          afterBody: function() {
-                            if (diasDecorridos == null || diasNoMes == null) return [];
-                            return [
-                              '',
-                              'Projeção = média diária × dias do mês.',
-                              `${diasDecorridos} dias decorridos de ${diasNoMes} no mês.`,
-                            ];
-                          },
-                        },
-                      },
+          <ChartCard
+            key={`projecao-${materialFilter || 'all'}`}
+            title="Projeção de Consumo do Mês Atual"
+            objective="Antecipar o consumo projetado até o fim do mês."
+            endpoint={`/projecao-mes-atual-filtrado${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
+            chartType="bar"
+            refreshMs={0}
+            initialDelay={0}
+            buildConfig={(data) => {
+              // Projetado = média diária (consumo até hoje / dias decorridos) * dias do mês (backend).
+              // Variação % = (projetado - média dos últimos 6 meses) / média dos últimos 6 meses * 100.
+              const row = data[0];
+              const projetado = Number(row?.consumo_projetado_mes) ?? 0;
+              const ateHoje = Number(row?.consumo_ate_hoje) ?? 0;
+              const media = Number(mediaUltimos6) ?? 0;
+              const diasDecorridos = row?.dias_decorridos;
+              const diasNoMes = row?.dias_no_mes;
+              let labelProjetado = 'Projetado';
+              if (media > 0) {
+                const pct = ((projetado - media) / media) * 100;
+                const formatted = Math.abs(pct).toFixed(1).replace('.', ',');
+                labelProjetado = pct >= 0 ? `Projetado (▲ ${formatted}%)` : `Projetado (▼ ${formatted}%)`;
+              }
+              return {
+                data: {
+                  labels: ['Até hoje', labelProjetado],
+                  datasets: [
+                    {
+                      label: 'Consumo',
+                      data: [ateHoje, projetado],
+                      backgroundColor: [CHART_COLORS[2], CHART_COLORS[3]],
                     },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          callback: function(value) {
-                            return new Intl.NumberFormat('pt-BR', {
-                              notation: 'compact',
-                              maximumFractionDigits: 1,
-                            }).format(value);
-                          },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const value = context.parsed.y;
+                          return `Consumo: ${new Intl.NumberFormat('pt-BR').format(value)}`;
+                        },
+                        afterBody: function() {
+                          if (diasDecorridos == null || diasNoMes == null) return [];
+                          return [
+                            '',
+                            'Projeção = média diária × dias do mês.',
+                            `${diasDecorridos} dias decorridos de ${diasNoMes} no mês.`,
+                          ];
                         },
                       },
                     },
                   },
-                };
-              }}
-              renderFooter={(data) => {
-                const d = data[0];
-                const dias = d?.dias_decorridos;
-                const total = d?.dias_no_mes;
-                if (dias == null || total == null) return null;
-                return (
-                  <>
-                    <strong>{dias}</strong> dias decorridos de <strong>{total}</strong> no mês. Projeção = média diária × dias do mês.
-                  </>
-                );
-              }}
-            />
-            
-            <InfoCard
-              key={`media-${materialFilter || 'all'}`}
-              title="Média dos últimos 6 meses"
-              endpoint={`/media-ultimos-6-consumos${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
-              formatValue={(value) => formatNumber(value, 1)}
-              unit="Média em unidades"
-              refreshMs={0}
-            />
-          </div>
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        callback: function(value) {
+                          return new Intl.NumberFormat('pt-BR', {
+                            notation: 'compact',
+                            maximumFractionDigits: 1,
+                          }).format(value);
+                        },
+                      },
+                    },
+                  },
+                },
+              };
+            }}
+            renderFooter={(data) => {
+              const d = data[0];
+              const dias = d?.dias_decorridos;
+              const total = d?.dias_no_mes;
+              if (dias == null || total == null) return null;
+              return (
+                <>
+                  <strong>{dias}</strong> dias decorridos de <strong>{total}</strong> no mês. Projeção = média diária × dias do mês.
+                </>
+              );
+            }}
+          />
+
+          <InfoCard
+            key={`media-${materialFilter || 'all'}`}
+            title="Média dos últimos 6 meses"
+            endpoint={`/media-ultimos-6-consumos${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
+            formatValue={(value) => formatNumber(value, 1)}
+            unit="Média em unidades"
+            refreshMs={0}
+          />
         </div>
       </section>
 
@@ -271,7 +269,7 @@ function Dashboard() {
         <p className="section-subtitle">
           Comparativos entre unidades e localização de gargalos operacionais.
         </p>
-        <div className="grid grid-single-full">
+        <div className="grid grid-single-full analises-unidade-grid">
           <ChartCard
             key={`hospital-almox-${materialFilter || 'all'}`}
             title="Consumo por hospital / almoxarifado"
