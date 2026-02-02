@@ -92,10 +92,22 @@ app.use(errorHandler);
 const PORT = config.app.port;
 const HOST = config.app.host;
 
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, async () => {
   console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
   console.log(`📊 Ambiente: ${config.app.env}`);
   console.log(`🔗 API disponível em http://${HOST}:${PORT}/api`);
+  try {
+    const { ensureAlertasConsTable } = await import('./config/database.js');
+    await ensureAlertasConsTable();
+  } catch (err) {
+    console.warn('⚠️ Schema/tabela ctrl.alerta_cons:', err.message);
+  }
+  try {
+    const { startAlertasCron } = await import('./jobs/alertasJob.js');
+    startAlertasCron();
+  } catch (err) {
+    console.warn('⚠️ Cron de alertas não iniciado:', err.message);
+  }
 });
 
 // Tratamento de erros do servidor

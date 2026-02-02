@@ -13,6 +13,13 @@ import {
 } from '../controllers/consumoController.js';
 import { getBatch, getPreload } from '../controllers/batchController.js';
 import { getHealth, getHealthCheck } from '../controllers/healthController.js';
+import {
+  getAlertasCons,
+  postAlertasCons,
+  putAlertasCons,
+  deleteAlertasCons,
+  postEnviarManual,
+} from '../controllers/alertasConsController.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 import { simpleCache } from '../middlewares/cacheMiddleware.js';
 
@@ -43,6 +50,13 @@ router.get('/', (req, res) => {
         batch: '/api/batch (POST)',
         preload: '/api/preload',
       },
+      alertas: {
+        list: 'GET /api/alertas-cons',
+        create: 'POST /api/alertas-cons',
+        update: 'PUT /api/alertas-cons/:id',
+        delete: 'DELETE /api/alertas-cons/:id',
+        enviarManual: 'POST /api/alertas/enviar-manual',
+      },
     },
     documentation: 'Consulte README.md para mais informações',
   });
@@ -68,5 +82,12 @@ router.get('/historico-consumo-mensal', simpleCache(10 * 60 * 1000), asyncHandle
 router.get('/projecao-mes-atual-filtrado', simpleCache(5 * 60 * 1000), asyncHandler(getProjecaoMesAtualFiltrado));
 router.get('/lista-materiais', simpleCache(30 * 60 * 1000), asyncHandler(getListaMateriais));
 router.get('/media-ultimos-6-consumos', simpleCache(10 * 60 * 1000), asyncHandler(getMediaUltimos6Consumos));
+
+// Alertas de consumo (CRUD destinatários + envio manual)
+router.get('/alertas-cons', asyncHandler(getAlertasCons));
+router.post('/alertas-cons', asyncHandler(postAlertasCons));
+router.put('/alertas-cons/:id', asyncHandler(putAlertasCons));
+router.delete('/alertas-cons/:id', asyncHandler(deleteAlertasCons));
+router.post('/alertas/enviar-manual', asyncHandler(postEnviarManual));
 
 export default router;
