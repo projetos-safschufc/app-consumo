@@ -291,7 +291,7 @@ function Dashboard() {
         <div className="grid grid-single-full analises-unidade-grid">
           <ChartCard
             key={`hospital-almox-${materialFilter || 'all'}`}
-            title="Consumo por hospital / almoxarifado"
+            title="Consumo por Setor Consumidor"
             objective="Média dos últimos 6 meses (anteriores ao mês corrente) por centro requisitante, em ordem decrescente. Apenas movimento_cd = 'RM'."
             endpoint={`/consumo-por-hospital-almox${queryParams}`}
             chartType="bar"

@@ -125,6 +125,41 @@ npm run build
 npm run preview
 ```
 
+#### Produção com variação de host e porta (ex.: servidor http://10.28.0.124)
+
+A aplicação está preparada para rodar em produção com **IP e porta configuráveis**:
+
+| Camada   | Variável        | Uso |
+|----------|-----------------|-----|
+| Backend  | `APP_HOST`      | Interface de escuta (`0.0.0.0` = todas; permite acesso via IP, ex. 10.28.0.124). |
+| Backend  | `APP_PORT`      | Porta do servidor (ex.: `5001`; pode ser outra conforme rede/firewall). |
+| Backend  | `CORS_ORIGINS`  | Origens permitidas do frontend (ex.: `http://10.28.0.124`, `http://10.28.0.124:80`). |
+| Frontend | `VITE_API_BASE` | URL completa da API no **build** (ex.: `http://10.28.0.124:5001/api`). |
+
+**Exemplo – servidor em 10.28.0.124, API na porta 5001:**
+
+1. **Backend** (`backend/.env`):
+   ```env
+   APP_HOST=0.0.0.0
+   APP_PORT=5001
+   NODE_ENV=production
+   CORS_ORIGINS=http://10.28.0.124,http://10.28.0.124:80,http://10.28.0.124:5173
+   ```
+2. **Frontend** – build com a URL da API:
+   ```bash
+   cd frontend
+   # Defina a URL da API antes do build (ou crie .env.production com VITE_API_BASE=...)
+   # Windows: set VITE_API_BASE=http://10.28.0.124:5001/api
+   # Linux/Mac: export VITE_API_BASE=http://10.28.0.124:5001/api
+   npm run build
+   ```
+   Servir a pasta `dist/` com um servidor web (Nginx, Apache, ou `npm run preview` para teste) em `http://10.28.0.124` (porta 80 ou outra).
+3. **Acesso:** frontend em `http://10.28.0.124/` e API em `http://10.28.0.124:5001/api`.
+
+**Mesmo host (proxy reverso):** se Nginx/Apache encaminharem `/api` para o backend, use `VITE_API_BASE=/api` no build; assim o frontend usa a mesma origem e a porta do servidor pode variar (80, 443, etc.) sem alterar o frontend.
+
+📘 **Guia passo a passo para Windows Server (IP 10.28.0.124):** [PRODUCAO_WINDOWS.md](PRODUCAO_WINDOWS.md)
+
 ## 📁 Estrutura do Projeto
 
 ```

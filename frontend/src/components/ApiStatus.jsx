@@ -23,9 +23,11 @@ function ApiStatus() {
       } catch (error) {
         setStatus('error');
         setMessage(`❌ Erro: ${error.message}`);
+        const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5001/api';
+        const backendUrl = apiBase.replace(/\/api\/?$/, '') || apiBase;
         setDetails({
           error: error.message,
-          suggestion: 'Verifique se o backend está rodando em http://localhost:5001',
+          suggestion: `Verifique se o backend está rodando em ${backendUrl}`,
         });
       }
     };
