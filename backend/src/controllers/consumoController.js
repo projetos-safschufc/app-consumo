@@ -1,9 +1,27 @@
 import { runQuery } from '../services/queryService.js';
+import { getSetorControleByMasterMap } from '../services/catalogService.js';
 
 /**
  * Controller de consumo
  * Gerencia os endpoints relacionados a consumo de materiais
  */
+
+/** Valores permitidos para filtro por setor_controle (evita valores arbitrários). */
+const SETORES_FILTRO_VALIDOS = new Set(['UACE', 'ULOG']);
+
+/**
+ * Formata valor de data para exibição MM/YYYY (ex.: 2023-06-01 -> "06/2023").
+ * @param {string|Date|null|undefined} value - Data ISO ou Date
+ * @returns {string|null} - "MM/YYYY" ou null se inválido
+ */
+function toMMYYYY(value) {
+  if (value == null) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const month = d.getUTCMonth() + 1;
+  const year = d.getUTCFullYear();
+  return `${String(month).padStart(2, '0')}/${year}`;
+}
 
 /**
  * Projeção do mês atual
@@ -22,29 +40,58 @@ export async function getProjecaoMesAtual(req, res, next) {
 /**
  * Crescimento abrupto: mês anterior (consolidado) vs mês atual (parcial).
  * Variação % = ((atual - anterior) / anterior) * 100; exibe apenas quando > 30%.
+ * MERGE com ctrl.safs_catalogo: mat_codigo = master -> setor_controle.
+ * Filtro opcional: ?setor=UACE|ULOG atua sobre a coluna setor_controle.
  */
 export async function getCrescimentoAbrupto(req, res, next) {
   try {
     const payload = await runQuery('crescimento_abrupto', {
       requiredFields: ['material', 'crescimento_percentual'],
-      sortKey: null, // Ordem definida no SQL: ORDER BY crescimento_percentual DESC
+      sortKey: null,
     });
-    res.json(payload);
+    const data = payload.data || [];
+    const setorFilter = req.query.setor != null ? String(req.query.setor).trim() : '';
+
+    const map = await getSetorControleByMasterMap();
+    const enriched = data.map((row) => {
+      const id = row.mat_codigo != null ? String(row.mat_codigo).trim() : '';
+      const setorControle = (id && map.get(id)) || null;
+      return { ...row, setor_controle: setorControle };
+    });
+
+    let filtered = enriched;
+    if (setorFilter && SETORES_FILTRO_VALIDOS.has(setorFilter)) {
+      filtered = enriched.filter((row) => row.setor_controle === setorFilter);
+    }
+
+    res.json({
+      data: filtered,
+      meta: {
+        count: filtered.length,
+        query: 'crescimento_abrupto',
+        setor_filter: setorFilter || null,
+      },
+    });
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * Materiais sem consumo nos últimos 6 meses (dados a partir de 2023; ordenado pelos que estão há mais tempo sem consumo)
+ * Materiais sem consumo nos últimos 6 meses (dados a partir de 2023; ordenado pelos que estão há mais tempo sem consumo).
+ * ultimo_mes_consumo é formatado como MM/YYYY para exibição.
  */
 export async function getConsumoZero6Meses(req, res, next) {
   try {
     const payload = await runQuery('consumo_zero_6_meses', {
       requiredFields: ['material', 'ultimo_mes_consumo'],
-      sortKey: null, // Ordem definida no SQL: ORDER BY ultimo_mes_consumo ASC (mais tempo sem consumo primeiro)
+      sortKey: null,
     });
-    res.json(payload);
+    const data = (payload.data || []).map((row) => ({
+      ...row,
+      ultimo_mes_consumo: toMMYYYY(row.ultimo_mes_consumo) ?? row.ultimo_mes_consumo,
+    }));
+    res.json({ ...payload, data });
   } catch (error) {
     next(error);
   }
@@ -226,7 +273,7 @@ export async function getHistoricoConsumoMensal(req, res, next) {
     } else {
       params.FILTER_MATERIAL = '';
     }
-    
+
     const payload = await runQuery('historico_consumo_mensal', {
       requiredFields: ['mesano', 'consumo_mensal'],
       sortKey: 'mesano',
@@ -263,7 +310,7 @@ export async function getProjecaoMesAtualFiltrado(req, res, next) {
     } else {
       params.FILTER_MATERIAL = '';
     }
-    
+
     const payload = await runQuery('projecao_mes_atual_filtrado', {
       requiredFields: ['consumo_ate_hoje', 'consumo_projetado_mes'],
       params,
@@ -324,12 +371,12 @@ export async function getMediaUltimos6Consumos(req, res, next) {
     } else {
       params.FILTER_MATERIAL = '';
     }
-    
+
     const payload = await runQuery('media_ultimos_6_consumos', {
       requiredFields: ['media_ultimos_6_consumos'],
       params,
     });
-    
+
     res.json(payload);
   } catch (error) {
     next(error);

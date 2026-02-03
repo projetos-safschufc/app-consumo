@@ -47,6 +47,7 @@ router.get('/', (req, res) => {
         projecaoMesAtualFiltrado: '/api/projecao-mes-atual-filtrado',
         listaMateriais: '/api/lista-materiais',
         mediaUltimos6Consumos: '/api/media-ultimos-6-consumos',
+        setoresControle: '/api/setores-controle',
         batch: '/api/batch (POST)',
         preload: '/api/preload',
       },

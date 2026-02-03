@@ -102,8 +102,10 @@ cd frontend
 npm run dev
 ```
 
-O backend estará disponível em `http://localhost:5000`  
-O frontend estará disponível em `http://localhost:5173`
+O backend estará disponível na porta definida em `backend/.env` (`APP_PORT`, padrão 5000).  
+O frontend estará disponível em `http://localhost:5173`.
+
+Se aparecer **ECONNREFUSED** ou "proxy error": (1) inicie o backend em outro terminal (`cd backend && npm run dev`); (2) se o backend usar outra porta (ex.: `APP_PORT=5001`), defina no `frontend/.env`: `VITE_PROXY_TARGET=http://localhost:5001`.
 
 📖 **Para instruções detalhadas, consulte:** [`GUIA_EXECUCAO.md`](GUIA_EXECUCAO.md)  
 ⚡ **Para início rápido:** [`INICIO_RAPIDO.md`](INICIO_RAPIDO.md)
@@ -170,10 +172,22 @@ app_consumo/
 - `GET /api/projecao-mensal-material` - Projeção mensal por material
 - `GET /api/tendencia-ultimos-6-meses` - Tendência dos últimos 6 meses
 - `GET /api/crescimento-abrupto` - Materiais com crescimento abrupto
-- `GET /api/consumo-zero-6-meses` - Materiais sem consumo recente
+- `GET /api/consumo-zero-6-meses` - Materiais sem consumo recente (coluna `setor_controle` via merge com `ctrl.safs_catalogo`; filtro `?setor=UACE|ULOG`)
 - `GET /api/consumo-por-hospital-almox` - Consumo por hospital/almoxarifado
 - `GET /api/ranking-materiais-criticos` - Ranking de materiais críticos
 - `GET /api/consumo-x-valor` - Consumo x valor (impacto financeiro)
+
+## 📊 Integração SAFS (ctrl.safs_catalogo)
+
+A tabela **"Materiais sem consumo recente"** no dashboard exibe a coluna **setor_controle** obtida por MERGE com a tabela `ctrl.safs_catalogo` no banco SAFS:
+
+- **Condição de junção:** valor à esquerda do `-` em `v_df_movimento.mat_cod_antigo` = `ctrl.safs_catalogo.master`.
+- **Coluna exibida:** `ctrl.safs_catalogo.setor_controle` (tipos tratados como String).
+- **Filtro:** select-box acima da tabela (Todos, UACE, ULOG) atuando sobre `setor_controle`.
+
+**Credenciais para acesso ao banco SAFS (schema ctrl):** o pool SAFS usa as mesmas variáveis do backend: `DB_HOST`, `DB_USER`, `DB_PASSWORD` ou `DB_PASSWORD_FILE`, e para SAFS: `DB_SAFS_PORT=5433`, `DB_SAFS_DATABASE=safs`, `DB_SCHEMA=ctrl`.
+
+**Senha com caractere especial (#):** para evitar que o `#` seja interpretado como comentário no `.env`, use `DB_PASSWORD_FILE`: coloque a senha em um arquivo (ex.: `.env.password`) e defina `DB_PASSWORD_FILE=.env.password`, ou use o valor literal entre aspas: `DB_PASSWORD_FILE="abi123!@#qwe"` (quando o valor não for um caminho de arquivo existente, a aplicação usa o próprio valor como senha).
 
 ## 🔒 Segurança
 

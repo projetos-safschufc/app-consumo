@@ -52,7 +52,9 @@ export async function batchRequest(requests) {
  * @returns {Promise<Object>} - Dados pré-carregados
  */
 export async function preloadData(mat_codigo = null) {
-  const params = mat_codigo ? `?mat_codigo=${encodeURIComponent(mat_codigo)}` : '';
+  const search = new URLSearchParams();
+  if (mat_codigo) search.set('mat_codigo', mat_codigo);
+  const params = search.toString() ? `?${search.toString()}` : '';
 
   try {
     const response = await fetch(`${API_BASE}/preload${params}`, {

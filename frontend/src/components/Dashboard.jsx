@@ -4,11 +4,19 @@ import TableCard from './TableCard';
 import MaterialFilterText from './MaterialFilterText';
 import InfoCard from './InfoCard';
 import { useApiData } from '../hooks/useApiData';
-import { CHART_COLORS, DEFAULT_REFRESH_MS } from '../utils/constants';
+import { CHART_COLORS } from '../utils/constants';
 import { formatMesAno, formatNumber } from '../utils/formatters';
 import { preloadData } from '../services/batchApi';
 import { fetchJson } from '../services/api';
 import './Dashboard.css';
+
+/** Monta query string para endpoints (mat_codigo). */
+function buildQueryParams(materialFilter) {
+  const p = new URLSearchParams();
+  if (materialFilter) p.set('mat_codigo', materialFilter);
+  const q = p.toString();
+  return q ? `?${q}` : '';
+}
 
 // Helper para gerar delays escalonados (evita requisições simultâneas)
 let componentIndex = 0;
@@ -21,8 +29,10 @@ function getStaggeredDelay() {
 function Dashboard() {
   const [materialFilter, setMaterialFilter] = useState(null);
   const [materialName, setMaterialName] = useState(null);
+  const [setorControleFilter, setSetorControleFilter] = useState('Todos');
 
-  const mediaEndpoint = `/media-ultimos-6-consumos${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`;
+  const queryParams = buildQueryParams(materialFilter);
+  const mediaEndpoint = `/media-ultimos-6-consumos${queryParams}`;
   const { data: mediaData } = useApiData(mediaEndpoint, 0, 0);
   const mediaUltimos6 = mediaData?.[0]?.media_ultimos_6_consumos;
 
@@ -35,11 +45,14 @@ function Dashboard() {
   useEffect(() => {
     const invalidateFilteredEndpoints = async () => {
       const { requestCache } = await import('../utils/cache.js');
-      const suffix = materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : '';
+      const suffix = buildQueryParams(materialFilter);
       requestCache.delete('/historico-consumo-mensal' + suffix);
       requestCache.delete('/projecao-mes-atual-filtrado' + suffix);
       requestCache.delete('/media-ultimos-6-consumos' + suffix);
       requestCache.delete('/consumo-por-hospital-almox' + suffix);
+      requestCache.delete('/crescimento-abrupto' + suffix);
+      requestCache.delete('/consumo-zero-6-meses' + suffix);
+      requestCache.delete('/lista-materiais');
     };
     invalidateFilteredEndpoints();
   }, [materialFilter]);
@@ -92,17 +105,23 @@ function Dashboard() {
         <p className="section-subtitle">
           Visualize o histórico mensal desde 2023 e a projeção do mês atual, com filtro por material.
         </p>
-        
-        <MaterialFilterText
-          value={materialFilter}
-          onChange={setMaterialFilter}
-          onMaterialChange={(payload) => setMaterialName(payload?.material ?? null)}
-        />
+
+        <div className="dashboard-filters-row">
+          <MaterialFilterText
+            value={materialFilter}
+            onChange={setMaterialFilter}
+            onMaterialChange={(payload) => setMaterialName(payload?.material ?? null)}
+          />
+        </div>
         {materialFilter && (
-          <div className="material-filter-label-name" role="status" aria-live="polite">
+          <div className="dashboard-filters-active" role="status" aria-live="polite">
             <span className="material-filter-label-code">Código: <strong>{materialFilter}</strong></span>
-            <span className="material-filter-label-sep"> • </span>
-            <span className="material-filter-label-nome">Nome: <strong>{materialName || '—'}</strong></span>
+            {materialName != null && (
+              <>
+                <span className="material-filter-label-sep"> • </span>
+                <span className="material-filter-label-nome">Nome: <strong>{materialName || '—'}</strong></span>
+              </>
+            )}
           </div>
         )}
 
@@ -111,7 +130,7 @@ function Dashboard() {
             key={`historico-${materialFilter || 'all'}`}
             title="Histórico de Consumo"
             objective="Evolução mensal do consumo desde 2023."
-            endpoint={`/historico-consumo-mensal${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
+            endpoint={`/historico-consumo-mensal${queryParams}`}
             chartType="bar"
             refreshMs={0}
             initialDelay={0}
@@ -172,7 +191,7 @@ function Dashboard() {
             key={`projecao-${materialFilter || 'all'}`}
             title="Projeção de Consumo do Mês Atual"
             objective="Antecipar o consumo projetado até o fim do mês."
-            endpoint={`/projecao-mes-atual-filtrado${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
+            endpoint={`/projecao-mes-atual-filtrado${queryParams}`}
             chartType="bar"
             refreshMs={0}
             initialDelay={0}
@@ -256,7 +275,7 @@ function Dashboard() {
           <InfoCard
             key={`media-${materialFilter || 'all'}`}
             title="Média dos últimos 6 meses"
-            endpoint={`/media-ultimos-6-consumos${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
+            endpoint={`/media-ultimos-6-consumos${queryParams}`}
             formatValue={(value) => formatNumber(value, 1)}
             unit="Média em unidades"
             refreshMs={0}
@@ -274,7 +293,7 @@ function Dashboard() {
             key={`hospital-almox-${materialFilter || 'all'}`}
             title="Consumo por hospital / almoxarifado"
             objective="Média dos últimos 6 meses (anteriores ao mês corrente) por centro requisitante, em ordem decrescente. Apenas movimento_cd = 'RM'."
-            endpoint={`/consumo-por-hospital-almox${materialFilter ? `?mat_codigo=${encodeURIComponent(materialFilter)}` : ''}`}
+            endpoint={`/consumo-por-hospital-almox${queryParams}`}
             chartType="bar"
             refreshMs={0}
             initialDelay={getStaggeredDelay()}
@@ -322,28 +341,52 @@ function Dashboard() {
           Itens críticos e pontos fora do padrão esperado.
         </p>
         <div className="grid">
-          <TableCard
-            title="Materiais com crescimento abrupto"
-            objective="Monitorar aumentos acima de 30%. Mês anterior = consolidado; mês atual = parcial (até hoje). % = variação entre atual e anterior."
-            endpoint="/crescimento-abrupto"
-            periodFromData={{ mesAtualKey: 'mes_atual' }}
-            columns={[
-              { key: 'material', label: 'Material' },
-              { key: 'consumo_mes_anterior', label: 'Mês anterior' },
-              { key: 'consumo_mes_atual', label: 'Mês atual' },
-              { key: 'crescimento_percentual', label: '% Cresc.' },
-            ]}
-            maxRows={15}
-            enableViewAll
-            enablePdfExport
-            refreshMs={0}
-            initialDelay={getStaggeredDelay()}
-          />
+          <div className="dashboard-table-with-setor-filter">
+            <div className="dashboard-setor-filtro-row" role="group" aria-label="Filtrar por setor de controle">
+              <label htmlFor="setor-controle-select" className="dashboard-setor-filtro-label">
+                Setor de controle
+              </label>
+              <select
+                id="setor-controle-select"
+                className="dashboard-setor-filtro-select"
+                value={setorControleFilter}
+                onChange={(e) => setSetorControleFilter(e.target.value)}
+                aria-describedby="setor-controle-desc"
+              >
+                <option value="Todos">Todos</option>
+                <option value="UACE">UACE</option>
+                <option value="ULOG">ULOG</option>
+              </select>
+              <span id="setor-controle-desc" className="dashboard-setor-filtro-desc">
+                Filtra a tabela pela coluna setor_controle (merge com ctrl.safs_catalogo).
+              </span>
+            </div>
+            <TableCard
+              key={`crescimento-abrupto-${setorControleFilter}`}
+              title="Materiais com crescimento abrupto"
+              objective="Monitorar aumentos acima de 30%. Mês anterior = consolidado; mês atual = parcial (até hoje). % = variação entre atual e anterior. Coluna setor_controle via merge com ctrl.safs_catalogo."
+              endpoint={`/crescimento-abrupto${queryParams}${setorControleFilter && setorControleFilter !== 'Todos' ? (queryParams ? '&' : '?') + 'setor=' + encodeURIComponent(setorControleFilter) : ''}`}
+              periodFromData={{ mesAtualKey: 'mes_atual' }}
+              columns={[
+                { key: 'material', label: 'Material' },
+                { key: 'setor_controle', label: 'Setor controle' },
+                { key: 'consumo_mes_anterior', label: 'Mês anterior' },
+                { key: 'consumo_mes_atual', label: 'Mês atual' },
+                { key: 'crescimento_percentual', label: '% Cresc.' },
+              ]}
+              maxRows={15}
+              enableViewAll
+              enablePdfExport
+              refreshMs={0}
+              initialDelay={getStaggeredDelay()}
+            />
+          </div>
 
           <TableCard
+            key="consumo-zero-6"
             title="Materiais sem consumo recente"
             objective="Detectar obsolescência ou inconsistências cadastrais. Dados a partir de 2023; ordenado pelos que estão há mais tempo sem consumo."
-            endpoint="/consumo-zero-6-meses"
+            endpoint={`/consumo-zero-6-meses${queryParams}`}
             columns={[
               { key: 'material', label: 'Material' },
               { key: 'ultimo_mes_consumo', label: 'Último mês' },

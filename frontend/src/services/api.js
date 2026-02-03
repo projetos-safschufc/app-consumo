@@ -9,7 +9,7 @@ const isDev = import.meta.env.DEV;
 const API_BASE_ENV = import.meta.env.VITE_API_BASE || 'http://localhost:5001/api';
 const API_BASE = isDev ? '/api' : API_BASE_ENV;
 
-const DEFAULT_TIMEOUT_MS = 30000;
+const DEFAULT_TIMEOUT_MS = 60000; // 60s para consultas pesadas
 
 // Log da configuração (apenas em desenvolvimento)
 if (isDev) {

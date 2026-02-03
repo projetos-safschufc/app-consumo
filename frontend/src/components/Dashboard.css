@@ -1,1 +1,75 @@
 /* Estilos específicos do Dashboard já estão em App.css */
+
+/* Linha de filtros: Material */
+.dashboard-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.dashboard-filters-row .material-filter-text {
+  flex: 1;
+  min-width: 280px;
+}
+
+/* Indicador de filtro ativo (material) – reflete em todos os gráficos, cartões e tabelas */
+.dashboard-filters-active {
+  margin: 6px 0 10px 0;
+  font-size: 13px;
+  color: #374151;
+}
+.dashboard-filters-active strong {
+  color: #111827;
+  font-weight: 600;
+}
+.dashboard-filters-active .material-filter-label-sep {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* Bloco: filtro setor de controle + tabela "Materiais sem consumo recente" */
+.dashboard-table-with-setor-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard-setor-filtro-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.dashboard-setor-filtro-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.dashboard-setor-filtro-select {
+  min-width: 120px;
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+}
+
+.dashboard-setor-filtro-select:hover {
+  border-color: #9ca3af;
+}
+
+.dashboard-setor-filtro-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.dashboard-setor-filtro-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
