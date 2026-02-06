@@ -348,7 +348,8 @@ export async function getListaMateriais(req, res, next) {
 }
 
 /**
- * Média dos últimos 6 consumos mensais (filtro opcional por código único: trecho à esquerda do '-' em mat_cod_antigo)
+ * Média dos últimos 6 consumos mensais, excluindo o mês atual (apenas meses fechados).
+ * Filtro opcional por código único: trecho à esquerda do '-' em mat_cod_antigo.
  */
 export async function getMediaUltimos6Consumos(req, res, next) {
   try {

@@ -259,7 +259,7 @@ export const SQL_QUERIES = {
   `,
 
   media_ultimos_6_consumos: `
-    -- Média aritmética dos últimos 6 consumos mensais. Filtro por código único (mat_cod_antigo antes do '-').
+    -- Média aritmética dos últimos 6 consumos mensais (exclui o mês atual). Filtro por código único (mat_cod_antigo antes do '-').
     SELECT
       COALESCE(AVG(consumo_mensal), 0) AS media_ultimos_6_consumos
     FROM (
@@ -273,6 +273,7 @@ export const SQL_QUERIES = {
       FROM gad_dlih_safs.v_df_movimento
       WHERE movimento_cd = 'RM'
         AND mesano >= '2023-01-01'
+        AND mesano < date_trunc('month', CURRENT_DATE)::date
         {{FILTER_MATERIAL}}
       GROUP BY mesano
       ORDER BY mesano DESC
