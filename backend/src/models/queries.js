@@ -53,6 +53,7 @@ export const SQL_QUERIES = {
       FROM gad_dlih_safs.v_df_movimento
       WHERE movimento_cd = 'RM'
         AND TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1)) <> ''
+        AND date_trunc('month', mesano)::date >= (date_trunc('month', CURRENT_DATE) - INTERVAL '1 month')::date
       GROUP BY date_trunc('month', mesano), TRIM(SPLIT_PART(COALESCE(mat_cod_antigo, ''), '-', 1))
     )
     SELECT

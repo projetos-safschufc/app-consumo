@@ -73,7 +73,7 @@ router.get('/preload', asyncHandler(getPreload));
 
 // Endpoints de consumo (com cache)
 router.get('/projecao-mes-atual', simpleCache(5 * 60 * 1000), asyncHandler(getProjecaoMesAtual));
-router.get('/crescimento-abrupto', asyncHandler(getCrescimentoAbrupto));
+router.get('/crescimento-abrupto', simpleCache(5 * 60 * 1000), asyncHandler(getCrescimentoAbrupto));
 router.get('/consumo-zero-6-meses', asyncHandler(getConsumoZero6Meses));
 router.get('/consumo-por-hospital-almox', asyncHandler(getConsumoPorHospitalAlmox));
 router.get('/ranking-materiais-criticos', asyncHandler(getRankingMateriaisCriticos));

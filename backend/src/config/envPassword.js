@@ -14,23 +14,29 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const backendDir = path.join(__dirname, '../..');
 
-/** Garante que .env foi carregado (útil quando este módulo é carregado antes de app.js) */
-function ensureEnvLoaded() {
-  const hasAny = process.env.DB_PASSWORD != null || process.env.DB_PASSWORD_FILE != null ||
-    process.env.SMTP_USER != null || process.env.SMTP_PASSWORD != null || process.env.SMTP_PASSWORD_FILE != null;
-  if (hasAny) return;
-  const backendDir = path.join(__dirname, '../..');
-  const cwd = process.cwd();
-  const paths = [
-    path.join(cwd, '.env'),
-    path.join(backendDir, '.env'),
-  ];
-  for (const p of paths) {
-    if (fs.existsSync(p)) {
-      dotenv.config({ path: p });
-      break;
-    }
+function stripQuotedEnvValue(value) {
+  const trimmed = String(value).replace(/\r\n/g, '\n').trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+/** Carrega backend/.env (ou cwd/.env) antes de resolver credenciais. */
+function loadBackendEnv() {
+  const cwdEnv = path.join(process.cwd(), '.env');
+  const backendEnv = path.join(backendDir, '.env');
+  if (fs.existsSync(cwdEnv)) {
+    dotenv.config({ path: cwdEnv });
+    return;
+  }
+  if (fs.existsSync(backendEnv)) {
+    dotenv.config({ path: backendEnv });
   }
 }
 
@@ -42,7 +48,6 @@ function resolvePasswordFilePath(filePath) {
   const normalized = String(filePath).replace(/\s+/g, ' ').trim();
   if (!normalized) return null;
   if (path.isAbsolute(normalized)) return normalized;
-  const backendDir = path.join(__dirname, '../..');
   const cwd = process.cwd();
   const candidates = [
     path.resolve(backendDir, normalized),
@@ -60,12 +65,13 @@ function resolvePasswordFilePath(filePath) {
  * @returns {string}
  */
 export function resolveDbPassword() {
-  ensureEnvLoaded();
+  loadBackendEnv();
 
   const filePathRaw = process.env.DB_PASSWORD_FILE;
   if (filePathRaw != null && String(filePathRaw).trim() !== '') {
-    const filePath = String(filePathRaw).replace(/\r\n/g, '\n').trim();
+    const filePath = stripQuotedEnvValue(filePathRaw);
     const hasPathSeparators = /[/\\]/.test(filePath) || path.isAbsolute(filePath);
+    const looksLikePasswordFile = /\.(password|secret|txt)$/i.test(filePath);
     const fullPath = resolvePasswordFilePath(filePath);
     let pathExists = false;
     try {
@@ -94,19 +100,23 @@ export function resolveDbPassword() {
         );
       }
     }
-    if (!hasPathSeparators) {
+    if (!hasPathSeparators && !looksLikePasswordFile) {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔐 Senha do banco usada a partir de DB_PASSWORD_FILE (valor literal).');
       }
       return filePath;
     }
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 Senha do banco usada a partir de DB_PASSWORD_FILE (valor literal, arquivo não encontrado).');
+      console.warn(
+        `⚠️ Arquivo de senha não encontrado (${filePath}). Verifique DB_PASSWORD_FILE no .env.`
+      );
     }
-    return filePath;
+    throw new Error(
+      `Não foi possível ler o arquivo de senha (DB_PASSWORD_FILE=${filePath}). Verifique o caminho e permissões.`
+    );
   }
 
-  const pass = process.env.DB_PASSWORD;
+  const pass = stripQuotedEnvValue(process.env.DB_PASSWORD ?? '');
   if (pass == null || pass === '') {
     throw new Error(
       'DB_PASSWORD ou DB_PASSWORD_FILE deve estar definido no .env. ' +
@@ -125,10 +135,10 @@ export function resolveDbPassword() {
  * @returns {string|null} Senha ou null se não definida
  */
 export function resolveSmtpPassword() {
-  ensureEnvLoaded();
+  loadBackendEnv();
   const filePathRaw = process.env.SMTP_PASSWORD_FILE;
   if (filePathRaw != null && String(filePathRaw).trim() !== '') {
-    const filePath = String(filePathRaw).replace(/\r\n/g, '\n').trim();
+    const filePath = stripQuotedEnvValue(filePathRaw);
     const hasPathSeparators = /[/\\]/.test(filePath) || path.isAbsolute(filePath);
     const fullPath = resolvePasswordFilePath(filePath);
     let pathExists = false;
@@ -149,7 +159,7 @@ export function resolveSmtpPassword() {
     if (!hasPathSeparators) return filePath;
     return filePath;
   }
-  const pass = process.env.SMTP_PASSWORD;
+  const pass = stripQuotedEnvValue(process.env.SMTP_PASSWORD ?? '');
   if (pass == null || pass === '') return null;
   return String(pass).trim() || null;
 }

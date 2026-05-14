@@ -22,6 +22,14 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
+  if (err.code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED')) {
+    return res.status(503).json({
+      error: 'Banco SAFS indisponível',
+      message:
+        'Não foi possível conectar ao banco de alertas (porta SAFS). Verifique DB_SAFS_HOST, DB_SAFS_PORT ou use DB_SAFS_USE_MAIN_POOL=true no backend/.env.',
+    });
+  }
+
   // Erro de query não encontrada
   if (err.message && err.message.includes('não encontrada')) {
     return res.status(404).json({

@@ -108,6 +108,23 @@ const server = app.listen(PORT, HOST, async () => {
   } catch (err) {
     console.warn('⚠️ Cron de alertas não iniciado:', err.message);
   }
+  try {
+    const { testConnection, testSafsConnection } = await import('./config/database.js');
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.warn(
+        '⚠️ Banco PowerBI indisponível ou credenciais inválidas. Verifique DB_HOST, DB_USER e o arquivo .env.password (DB_PASSWORD_FILE).'
+      );
+    }
+    const safsConnected = await testSafsConnection();
+    if (!safsConnected) {
+      console.warn(
+        '⚠️ Banco SAFS indisponível para alertas. Verifique DB_SAFS_HOST, DB_SAFS_PORT ou defina DB_SAFS_USE_MAIN_POOL=true no backend/.env.'
+      );
+    }
+  } catch (err) {
+    console.warn('⚠️ Não foi possível validar a conexão com o banco:', err.message);
+  }
 });
 
 // Tratamento de erros do servidor

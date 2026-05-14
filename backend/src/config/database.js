@@ -15,7 +15,11 @@ const dbPassword = resolveDbPassword();
 const host = process.env.DB_HOST;
 const user = process.env.DB_USER;
 const sslOpt = process.env.DB_SSLMODE === 'require' ? { rejectUnauthorized: false } : false;
-const poolOpts = { max: 20, idleTimeoutMillis: 30000, connectionTimeoutMillis: 2000 };
+const poolOpts = {
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: parseInt(process.env.DB_CONN_TIMEOUT_MS || '30000', 10),
+};
 
 /**
  * Pool PowerBI (consumo) – gad_dlih_safs.v_df_movimento
@@ -34,18 +38,22 @@ const pool = new Pool({
 
 /**
  * Pool SAFS (alertas) – ctrl.alerta_cons
- * Porta 5433, database safs (DB_SAFS_DATABASE)
+ * Porta 5433 por padrão; pode usar DB_SAFS_HOST e DB_SAFS_USE_MAIN_POOL.
  */
 const dbNameSafs = process.env.DB_SAFS_DATABASE || 'safs';
-const poolSafs = new Pool({
-  host,
-  port: parseInt(process.env.DB_SAFS_PORT || '5433', 10),
-  database: dbNameSafs,
-  user,
-  password: dbPassword,
-  ssl: sslOpt,
-  ...poolOpts,
-});
+const safsHost = process.env.DB_SAFS_HOST || host;
+const useMainPoolForSafs = process.env.DB_SAFS_USE_MAIN_POOL === 'true';
+const poolSafs = useMainPoolForSafs
+  ? pool
+  : new Pool({
+      host: safsHost,
+      port: parseInt(process.env.DB_SAFS_PORT || '5433', 10),
+      database: dbNameSafs,
+      user,
+      password: dbPassword,
+      ssl: sslOpt,
+      ...poolOpts,
+    });
 
 pool.on('error', (err) => {
   console.error('Erro inesperado no pool PowerBI (consumo):', err);
@@ -87,6 +95,20 @@ export async function testConnection() {
     return result.rows.length > 0;
   } catch (error) {
     console.error('Erro ao testar conexão:', error);
+    return false;
+  }
+}
+
+/**
+ * Testa a conexão com o banco SAFS (alertas / catálogo).
+ * @returns {Promise<boolean>}
+ */
+export async function testSafsConnection() {
+  try {
+    const result = await poolSafs.query('SELECT NOW()');
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Erro ao testar conexão SAFS:', error);
     return false;
   }
 }
